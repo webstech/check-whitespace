@@ -53,7 +53,7 @@ jobs:
         then
           echo "A whitespace issue was found in one or more of the commits." >$GITHUB_STEP_SUMMARY
           echo "" >>$GITHUB_STEP_SUMMARY
-          echo "Run \`git rebase --whitespace=fix ${lastcommit}\` and `git push --force` to correct the problem." >>$GITHUB_STEP_SUMMARY
+          echo "Run \`git rebase --whitespace=fix ${lastcommit}\` and \`git push --force\` to correct the problem." >>$GITHUB_STEP_SUMMARY
           for i in "${problems[@]}"
           do
             echo "${i}" >>$GITHUB_STEP_SUMMARY
