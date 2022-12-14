@@ -1,3 +1,5 @@
+# https://github.com/webstech/git/blob/whitespace/.github/workflows/check-whitespace.yml#L11
+# https://github.com/webstech/check-whitespace/actions/runs/3699297430
 name: check-whitespace
 
 # Get the repo with the commits(+1) in the series.
@@ -5,7 +7,7 @@ name: check-whitespace
 # Add a comment to the pull request with the check errors.
 
 on:
-  push:
+  # push:
   pull_request:
     types: [opened, synchronize]
 
@@ -17,15 +19,31 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Dump the client payload context
+      env:
+        ENV: ${{ toJson(env) }}
+        EVENT: ${{ toJson(github.event) }}
+        GITHUB: ${{ toJson(github) }}
+        PAYLOAD_CONTEXT: ${{ toJson(github.event.client_payload) }}
+      run: |
+        echo "$EVENT"
+        echo " "
+        echo "$GITHUB"
+        echo " "
+        echo "$ENV"
+
     - name: git log --check
       id: check_out
       run: |
+        baseSha=${{github.event.pull_request.base.sha}}
         baseSha=2e90cd05998d838be7e294218f3373a626bf7eb5
         baseSha=aaa04a92ba3a07b44c33cdac5197a4711655b132
-        baseSha=df60ffe5bafc32b88c500005b59f74012e4139ef
+        # baseSha=df60ffe5bafc32b88c500005b59f74012e4139ef
         problems=()
         commit=
+        currentcommit=
         commitText=
+        commitTextmd=
         goodparent=
         while read dash sha etc
         do
@@ -36,35 +54,51 @@ jobs:
               goodparent=${sha}
             fi
             commit="${sha}"
+            currentcommit="${sha}"
             commitText="${sha} ${etc}"
+            commitTextmd="[${sha}](https://github.com/${{ github.repository }}/commit/${sha}) ${etc}"
             ;;
           "")
             ;;
           *)
             if test -n "${commit}"
             then
-              problems+=("" "--- ${commitText}")
+              problems+=("1) --- ${commitTextmd}")
               echo " "
               echo "--- ${commitText}"
               commit=
             fi
-            problems+=("${dash} ${sha} ${etc}")
-            echo "${problems[-1]}"
+            # problems+=("${dash} ${sha} ${etc}")
+            case "${dash}" in
+            *:[1-9]*:) # contains file and line number information
+              dashend=${dash#*:}
+              echo "::error file=${dash%%:*},line=${dashend%:}::${sha} ${etc} (introduced in ${currentcommit})"
+              echo "       file=${dash%%:*},line=${dashend%:}"
+              problems+=("[${dash}](https://github.com/${{ github.repository }}/blob/${{github.event.pull_request.head.ref}}/${dash%%:*}#L${dashend}) ${sha} ${etc}")
+              ;;
+            *)
+              echo "${dash} ${sha} ${etc}"
+              problems+=("\`${dash} ${sha} ${etc}\`")
+              ;;
+            esac
+            # echo "${problems[-1]}"
             ;;
           esac
         done <<< $(git log --check --pretty=format:"---% h% s" ${baseSha}..)
-        # done <<< $(git log --check --pretty=format:"---% h% s" ${{github.event.pull_request.base.sha}}..)
 
         if test ${#problems[*]} -gt 0
         then
             if test -z "${commit}"
             then
-              goodparent=${baseSha}
-              # goodparent=${{github.event.pull_request.base.sha}}
+              goodparent=${baseSha: 0:7}
             fi
-          echo "A whitespace issue was found in one or more of the commits." >$GITHUB_STEP_SUMMARY
+          echo "### :x: A whitespace issue was found in one or more of the commits." >$GITHUB_STEP_SUMMARY
           echo "" >>$GITHUB_STEP_SUMMARY
-          echo "Run \`git rebase --whitespace=fix ${goodparent}\` and \`git push --force\` to correct the problem." >>$GITHUB_STEP_SUMMARY
+          echo "Run these commands to correct the problem:" >>$GITHUB_STEP_SUMMARY
+          echo "1. \`git rebase --whitespace=fix ${goodparent}\`" >>$GITHUB_STEP_SUMMARY
+          echo "1. \`git push --force\`" >>$GITHUB_STEP_SUMMARY
+          echo " " >>$GITHUB_STEP_SUMMARY
+          echo "Errors:" >>$GITHUB_STEP_SUMMARY
           for i in "${problems[@]}"
           do
             echo "${i}" >>$GITHUB_STEP_SUMMARY
