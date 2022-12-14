@@ -22,17 +22,18 @@ jobs:
       run: |
         baseSha=2e90cd05998d838be7e294218f3373a626bf7eb5
         baseSha=aaa04a92ba3a07b44c33cdac5197a4711655b132
+        baseSha=df60ffe5bafc32b88c500005b59f74012e4139ef
         problems=()
         commit=
         commitText=
-        lastcommit=
+        goodparent=
         while read dash sha etc
         do
           case "${dash}" in
           "---")
             if test -z "${commit}"
             then
-              lastcommit=${sha}
+              goodparent=${sha}
             fi
             commit="${sha}"
             commitText="${sha} ${etc}"
@@ -45,7 +46,6 @@ jobs:
               problems+=("" "--- ${commitText}")
               echo " "
               echo "--- ${commitText}"
-              # lastcommit=${commit}
               commit=
             fi
             problems+=("${dash} ${sha} ${etc}")
@@ -55,16 +55,16 @@ jobs:
         done <<< $(git log --check --pretty=format:"---% h% s" ${baseSha}..)
         # done <<< $(git log --check --pretty=format:"---% h% s" ${{github.event.pull_request.base.sha}}..)
 
-        if test ${#problems[*]}
+        if test ${#problems[*]} -gt 0
         then
             if test -z "${commit}"
             then
-              lastcommit=${baseSha}
-              # lastcommit=${{github.event.pull_request.base.sha}}
+              goodparent=${baseSha}
+              # goodparent=${{github.event.pull_request.base.sha}}
             fi
           echo "A whitespace issue was found in one or more of the commits." >$GITHUB_STEP_SUMMARY
           echo "" >>$GITHUB_STEP_SUMMARY
-          echo "Run \`git rebase --whitespace=fix ${lastcommit}\` and \`git push --force\` to correct the problem." >>$GITHUB_STEP_SUMMARY
+          echo "Run \`git rebase --whitespace=fix ${goodparent}\` and \`git push --force\` to correct the problem." >>$GITHUB_STEP_SUMMARY
           for i in "${problems[@]}"
           do
             echo "${i}" >>$GITHUB_STEP_SUMMARY
