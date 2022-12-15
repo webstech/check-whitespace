@@ -68,20 +68,19 @@ jobs:
               echo "--- ${commitText}"
               commit=
             fi
-            # problems+=("${dash} ${sha} ${etc}")
             case "${dash}" in
             *:[1-9]*:) # contains file and line number information
               dashend=${dash#*:}
-              echo "::error file=${dash%%:*},line=${dashend%:}::${sha} ${etc} (introduced in ${currentcommit})"
-              echo "       file=${dash%%:*},line=${dashend%:}"
+              # echo "::error file=${dash%%:*},line=${dashend%:}::${sha} ${etc} (introduced in ${currentcommit})"
+              # echo "       file=${dash%%:*},line=${dashend%:}"
               problems+=("[${dash}](https://github.com/${{ github.repository }}/blob/${{github.event.pull_request.head.ref}}/${dash%%:*}#L${dashend}) ${sha} ${etc}")
               ;;
             *)
-              echo "${dash} ${sha} ${etc}"
+              # echo "${dash} ${sha} ${etc}"
               problems+=("\`${dash} ${sha} ${etc}\`")
               ;;
             esac
-            # echo "${problems[-1]}"
+            echo "${dash} ${sha} ${etc}"
             ;;
           esac
         done <<< $(git log --check --pretty=format:"---% h% s" ${baseSha}..)
@@ -92,7 +91,7 @@ jobs:
           then
             goodparent=${baseSha: 0:7}
           fi
-          echo "🛑 Please review the summary output for further information."
+          echo "🛑 Please review the Summary output for further information."
           echo "### :x: A whitespace issue was found in one or more of the commits." >$GITHUB_STEP_SUMMARY
           echo "" >>$GITHUB_STEP_SUMMARY
           echo "Run these commands to correct the problem:" >>$GITHUB_STEP_SUMMARY
