@@ -88,10 +88,11 @@ jobs:
 
         if test ${#problems[*]} -gt 0
         then
-            if test -z "${commit}"
-            then
-              goodparent=${baseSha: 0:7}
-            fi
+          if test -z "${commit}"
+          then
+            goodparent=${baseSha: 0:7}
+          fi
+          echo "🛑 Please review the summary output for further information."
           echo "### :x: A whitespace issue was found in one or more of the commits." >$GITHUB_STEP_SUMMARY
           echo "" >>$GITHUB_STEP_SUMMARY
           echo "Run these commands to correct the problem:" >>$GITHUB_STEP_SUMMARY
